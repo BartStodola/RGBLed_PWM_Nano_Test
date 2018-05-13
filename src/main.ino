@@ -1,97 +1,81 @@
 #include <Arduino.h>
 // Init the Pins used for PWM arduino nano
-const int redPin = 9;
+const int redPin = 11;
 const int greenPin = 10;
-const int bluePin = 11;
+const int bluePin = 9;
 
-int nextCount =0;
+int nextStep =0;
+int colorVal=0;
+bool doDelay = false;
 
 void setup()
 {
   pinMode(redPin, OUTPUT);
   pinMode(greenPin, OUTPUT);
   pinMode(bluePin, OUTPUT);
+  doDelay = false;
 //   Serial.begin(9600);
 //  Serial.println("setup done");
 }
 
-int c=0;
-int bl=0;
-bool up = true;
-
-void fadeR()
+void Delay(int msec)
 {
-  if (nextCount != 0) return;
-  if (bl == 0) up = true;
-  if (bl == 1024) up = false;
-  if (up)bl++;
-  else bl--;
-  int r=bl;
+  if (doDelay)
+  {
+    doDelay=false;
+    delay(msec);
+  }
+}
 
-// Write the color to each pin using PWM and the value gathered above
-  analogWrite(redPin, map( r, 0, 1024, 0, 255 ));
+void FadeBlackToYellow()
+{
+  if (nextStep != 0) return;
+
+  colorVal++;
+  int val  = map( colorVal, 0, 1024, 0, 255 );
+  analogWrite(redPin, val);
+  analogWrite(greenPin, val);
   analogWrite(bluePin, 0);
-  analogWrite(greenPin, 0);
 
-  if (bl == 0 && !up) nextCount++;
+  if (colorVal == 1024) {nextStep++;doDelay=true;colorVal=10240;}
 }
 
-void fadeG()
+void FadeYellowToRed()
 {
-  if (nextCount != 1) return;
-  if (bl == 0) up = true;
-  if (bl == 1024) up = false;
-  if (up)bl++;
-  else bl--;
-  int b=bl;
+  if (nextStep != 1) return;
 
-// Write the color to each pin using PWM and the value gathered above
-  analogWrite(redPin, 0);
-  analogWrite(bluePin, map( b, 0, 1024, 0, 255 ));
-  analogWrite(greenPin, 0);
+  colorVal--;
 
-  if (bl == 0 && !up) nextCount++;
-}
-
-void fadeB()
-{
-  if (nextCount != 2) return;
-  if (bl == 0) up = true;
-  if (bl == 1024) up = false;
-  if (up)bl++;
-  else bl--;
-  int g=bl;
-
-// Write the color to each pin using PWM and the value gathered above
-  analogWrite(redPin, 0);
+  analogWrite(redPin, 255);
+  analogWrite(greenPin, map( colorVal, 0, 10240, 0, 255 ));
   analogWrite(bluePin, 0);
-  analogWrite(greenPin, map( g, 0, 1024, 0, 255 ));
 
-  if (bl == 0 && !up) nextCount++;
+  if (colorVal == 0) {colorVal = 1024; nextStep++;doDelay=true;}
 }
-void fadeWhite()
+
+void FadeRedToBlack()
 {
-  if (nextCount != 3) return;
-  if (bl == 0) up = true;
-  if (bl == 1024) up = false;
-  if (up)bl++;
-  else bl--;
-  int g=bl;
+  if (nextStep != 2) return;
 
-// Write the color to each pin using PWM and the value gathered above
-  analogWrite(redPin,   map( g, 0, 1024, 0, 255 ));
-  analogWrite(bluePin,  map( g, 0, 1024, 0, 255 ));
-  analogWrite(greenPin, map( g, 0, 1024, 0, 255 ));
+  colorVal--;
 
-  if (bl == 0 && !up) nextCount++;
+  analogWrite(redPin, map( colorVal, 0, 1024, 0, 255 ));
+  analogWrite(greenPin, 0);
+  analogWrite(bluePin, 0);
+
+  if (colorVal == 0) {nextStep++;doDelay=true;}
 }
+
+// move from colorValack --> yellow --> red --> colorValack
 void loop()
 {
-  fadeR();
-  fadeG();
-  fadeB();
-  fadeWhite();
-  if (nextCount == 4) nextCount =0;
+  FadeBlackToYellow();
+  Delay(1000);
+  FadeYellowToRed();
+  Delay(1000);
+  FadeRedToBlack();
+  Delay(1000);
 
-  delay(1);
+  if (nextStep == 3) nextStep =0;
+  delay(2);
 }
